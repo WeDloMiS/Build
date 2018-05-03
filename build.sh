@@ -6,6 +6,7 @@
 #
 # Dependencies:
 # parted squashfs-tools dosfstools multistrap qemu binfmt-support qemu-user-static kpartx
+# Edit 03 05 2018
 
 #Set fonts for Help.
 NORM=$(tput sgr0)
@@ -17,26 +18,8 @@ ARCH=none
 function HELP {
   echo "
 
-Help documentation for Volumio Image Builder
+Usage: ./build.sh -b x86 -d x86 -v 1.0
 
-Basic usage: ./build.sh -b arm -d pi -v 2.0
-
-Switches:
-  -b <arch> Build a full system image with Multistrap.
-            Options for the target architecture are 'arm' (Raspbian), 'armv7' (Debian arm64), 'armv8' (Debian arm64) or 'x86' (Debian i386).
-  -d        Create Image for Specific Devices. Supported device names:
-              pi, udooneo, udooqdl, cuboxi, cubietruck, compulab,
-              odroidc1, odroidc2, odroidxu4, sparky, bbb, pine64,
-              bpim2u, bpipro, tinkerboard, sopine64, rock64, voltastream0, nanopi64,
-              nanopineo2, nanopineo, nanopineo
-  -v <vers> Version must be a dot separated number. Example 1.102 .
-
-  -l <repo> Create docker layer. Give a Docker Repository name as the argument.
-  -p <dir>  Optionally patch the builder. <dir> should contain a tree of
-            files you want to replace within the build tree. Experts only.
-
-Example: Build a Raspberry PI image from scratch, version 2.0 :
-         ./build.sh -b arm -d pi -v 2.0 -l reponame
 "
   exit 1
 }
@@ -111,26 +94,11 @@ fi
 
 if [ -n "$BUILD" ]; then
   CONF="recipes/$BUILD.conf"
-  if [ "$BUILD" = arm ] || [ "$BUILD" = arm-dev ]; then
-    ARCH="armhf"
-    BUILD="arm"
-    echo "Building ARM Base System with Raspbian"
-  elif [ "$BUILD" = armv7 ] || [ "$BUILD" = armv7-dev ]; then
-    ARCH="armhf"
-    BUILD="armv7"
-    echo "Building ARMV7 Base System with Debian"
-  elif [ "$BUILD" = armv8 ] || [ "$BUILD" = armv8-dev ]; then
-    ARCH="arm64"
-    BUILD="armv8"
-    echo "Building ARMV8 (arm64) Base System with Debian"
-  elif [ "$BUILD" = x86 ] || [ "$BUILD" = x86-dev ]; then
-    echo 'Building X86 Base System with Debian'
-    ARCH="i386"
-    BUILD="x86"
-  elif [ ! -f recipes/$BUILD.conf ]; then
-    echo "Unexpected Base System architecture '$BUILD' - aborting."
-    exit
-  fi
+  
+  echo 'Building X86 Base System with Debian'
+  ARCH="i386"
+  BUILD="x86"
+
   if [ -d "build/$BUILD" ]; then
     echo "Build folder exists, cleaning it"
     rm -rf "build/$BUILD"
@@ -143,11 +111,8 @@ if [ -n "$BUILD" ]; then
 
   mkdir "build/$BUILD"
   mkdir "build/$BUILD/root"
+  
   multistrap -a "$ARCH" -f "$CONF"
-  if [ ! "$BUILD" = x86 ]; then
-    echo "Build for arm/armv7/armv8 platform, copying qemu"
-    cp /usr/bin/qemu-arm-static "build/$BUILD/root/usr/bin/"
-  fi
   cp scripts/volumioconfig.sh "build/$BUILD/root"
 
   mount /dev "build/$BUILD/root/dev" -o bind
@@ -155,15 +120,17 @@ if [ -n "$BUILD" ]; then
   mount /sys "build/$BUILD/root/sys" -t sysfs
 
   echo 'Cloning Volumio Node Backend'
-  mkdir "build/$BUILD/root/volumio"
+  mkdir "build/$BUILD/root/volumio"  
   if [ -n "$PATCH" ]; then
       echo "Cloning Volumio with all its history"
-      git clone https://github.com/volumio/Volumio2.git build/$BUILD/root/volumio
+      git clone https://github.com/WeDloMiS/Volumio2.git build/$BUILD/root/volumio
   else
-      git clone --depth 1 -b master --single-branch https://github.com/volumio/Volumio2.git build/$BUILD/root/volumio
+      git clone --depth 1 -b master --single-branch https://github.com/WeDloMiS/Volumio2.git build/$BUILD/root/volumio
   fi
+  
   echo 'Cloning Volumio UI'
-  git clone --depth 1 -b dist --single-branch https://github.com/volumio/Volumio2-UI.git "build/$BUILD/root/volumio/http/www"
+  git clone --depth 1 -b dist --single-branch https://github.com/WeDloMiS/Volumio2-UI.git "build/$BUILD/root/volumio/http/www"
+  
   echo "Adding os-release infos"
   {
     echo "VOLUMIO_BUILD_VERSION=\"$(git rev-parse HEAD)\""
@@ -172,8 +139,6 @@ if [ -n "$BUILD" ]; then
     echo "VOLUMIO_ARCH=\"${BUILD}\""
   } >> "build/$BUILD/root/etc/os-release"
   rm -rf build/$BUILD/root/volumio/http/www/.git
-  if [ ! "$BUILD" = x86 ]; then
-    chroot "build/$BUILD/root" /bin/bash -x <<'EOF'
 su -
 ./volumioconfig.sh
 EOF
@@ -211,115 +176,9 @@ else
   PATCH='volumio'
 fi
 
-case "$DEVICE" in
-  pi) echo 'Writing Raspberry Pi Image File'
-    check_os_release "arm" "$VERSION" "$DEVICE"
-    sh scripts/raspberryimage.sh -v "$VERSION" -p "$PATCH"
-    ;;
-  cuboxi) echo 'Writing Cubox-i Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/cuboxiimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  odroidc1) echo 'Writing Odroid-C1/C1+ Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/odroidc1image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  odroidc2) echo 'Writing Odroid-C2 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-# this will be changed to armv8 once the volumio packges have been re-compiled for aarch64
-    sh scripts/odroidc2image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  odroidxu4) echo 'Writing Odroid-XU4 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/odroidxu4image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  odroidx2) echo 'Writing Odroid-X2 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/odroidx2image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  sparky) echo 'Writing Sparky Image File'
-    check_os_release "arm" "$VERSION" "$DEVICE"
-    sh scripts/sparkyimage.sh -v "$VERSION" -p "$PATCH" -a arm
-    ;;
-  bbb) echo 'Writing BeagleBone Black Image File'
-    check_os_release "arm" "$VERSION" "$DEVICE"
-    sh scripts/bbbimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  udooneo) echo 'Writing UDOO NEO Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/udooneoimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  udooqdl) echo 'Writing UDOO Quad/Dual Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/udooqdlimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  pine64) echo 'Writing Pine64 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-# this will be changed to armv8 once the volumio packges have been re-compiled for aarch64
-    sh scripts/pine64image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-   nanopi64) echo 'Writing NanoPI A64 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/nanopi64image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  bpim2u) echo 'Writing BPI-M2U Image File'
-    check_os_release "arm" "$VERSION" "$DEVICE"
-    sh scripts/bpim2uimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  bpipro) echo 'Writing Banana PI PRO Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/bpiproimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  armbian_*)
-    echo 'Writing armbian-based Image File'
-    check_os_release "arm" "$VERSION" "$DEVICE"
-    sh scripts/armbianimage.sh -v "$VERSION" -d "$DEVICE" -p "$PATCH"
-    ;;
-  tinkerboard) echo 'Writing Ausus Tinkerboard Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/tinkerimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  sopine64) echo 'Writing Sopine64 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/sopine64image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  rock64) echo 'Writing Rock64 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/rock64image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  voltastream0) echo 'Writing PV Voltastream0 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/vszeroimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  aml805armv7) echo 'Writing Amlogic S805 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/aml805armv7image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  aml812armv7) echo 'Writing Amlogic S812 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/aml812armv7image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  aml9xxxarmv7) echo 'Writing AmlogicS9xxx Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/aml9xxxarmv7image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  orangepione|orangepilite|orangepipc) echo 'Writing OrangePi Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/orangepiimage.sh -v "$VERSION" -p "$PATCH" -d "$DEVICE"
-    ;;
-  x86) echo 'Writing x86 Image File'
-    check_os_release "x86" "$VERSION" "$DEVICE"
-    sh scripts/x86image.sh -v "$VERSION" -p "$PATCH";
-    ;;
-  nanopineo2) echo 'Writing NanoPi-NEO2 armv7 Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/nanopineo2image.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-  nanopineo) echo 'Writing NanoPi-NEO (Air) Image File'
-    check_os_release "armv7" "$VERSION" "$DEVICE"
-    sh scripts/nanopineoimage.sh -v "$VERSION" -p "$PATCH" -a armv7
-    ;;
-esac
+echo 'Writing x86 Image File'
+check_os_release "x86" "$VERSION" "$DEVICE"
+sh scripts/x86image.sh -v "$VERSION" -p "$PATCH";
 
 #When the tar is created we can build the docker layer
 if [ "$CREATE_DOCKER_LAYER" = 1 ]; then

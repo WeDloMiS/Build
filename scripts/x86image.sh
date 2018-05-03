@@ -80,23 +80,23 @@ sudo mkdir /mnt/volumio/boot
 sudo mount -t vfat "${BOOT_PART}" /mnt/volumio/rootfs/boot
 
 cp scripts/x86config.sh /mnt/volumio/rootfs
-if [ ! -d platform-x86 ]; then
-  echo "Platform files (packages) not available yet, getting them from the repo"
-  git clone http://github.com/volumio/platform-x86
-fi
-
-if [ -f platform-x86/packages/.next ]; then
-  cp platform-x86/packages/experimental/linux-image-*.deb /mnt/volumio/rootfs
-  cp platform-x86/packages/experimental/linux-firmware-*.deb /mnt/volumio/rootfs
-  echo "Adding Intel 3168NGW wifi support"
-  echo "Adding Intel CherryTrail/BayTrail SST Audio firmware"
-#TODO: evaluate when switching to stretch, especially with kernel version > 4.12.9
-  cp -R platform-x86/packages/iwlwifi-3168-ucode-22.361476.0/* /mnt/volumio/rootfs/lib/firmware
-  cp -R platform-x86/packages/firmware-intel-sound/* /mnt/volumio/rootfs/lib/firmware
-else
-  cp platform-x86/packages/linux-image-*.deb /mnt/volumio/rootfs
-  cp platform-x86/packages/linux-firmware-*.deb /mnt/volumio/rootfs
-fi
+#if [ ! -d platform-x86 ]; then
+#  echo "Platform files (packages) not available yet, getting them from the repo"
+#  git clone http://github.com/volumio/platform-x86
+#fi
+#
+#if [ -f platform-x86/packages/.next ]; then
+#  cp platform-x86/packages/experimental/linux-image-*.deb /mnt/volumio/rootfs
+#  cp platform-x86/packages/experimental/linux-firmware-*.deb /mnt/volumio/rootfs
+#  echo "Adding Intel 3168NGW wifi support"
+#  echo "Adding Intel CherryTrail/BayTrail SST Audio firmware"
+##TODO: evaluate when switching to stretch, especially with kernel version > 4.12.9
+#  cp -R platform-x86/packages/iwlwifi-3168-ucode-22.361476.0/* /mnt/volumio/rootfs/lib/firmware
+#  cp -R platform-x86/packages/firmware-intel-sound/* /mnt/volumio/rootfs/lib/firmware
+#else
+#  cp platform-x86/packages/linux-image-*.deb /mnt/volumio/rootfs
+#  cp platform-x86/packages/linux-firmware-*.deb /mnt/volumio/rootfs
+#fi
 
 cp volumio/splash/volumio.png /mnt/volumio/rootfs/boot
 
@@ -132,8 +132,9 @@ chroot /mnt/volumio/rootfs /bin/bash -x <<'EOF'
 /x86config.sh -p
 EOF
 
-rm /mnt/volumio/rootfs/linux-image-*.deb
-rm /mnt/volumio/rootfs/init.sh /mnt/volumio/rootfs/linux-firmware-*.deb
+#rm /mnt/volumio/rootfs/linux-image-*.deb
+#rm /mnt/volumio/rootfs/init.sh /mnt/volumio/rootfs/linux-firmware-*.deb
+rm /mnt/volumio/rootfs/init.sh
 rm /mnt/volumio/rootfs/root/init /mnt/volumio/rootfs/x86config.sh
 rm /mnt/volumio/rootfs/ata-modules.x86
 sync
@@ -204,7 +205,3 @@ sudo losetup -d ${LOOP_DEV}
 sync
 
 echo "X86 Image file created"
-echo "Building VMDK Virtual Image File"
-qemu-img convert ${IMG_FILE} -O vmdk Volumio-dev.vmdk
-md5sum Volumio-dev.vmdk > Volumio-dev.vmdk.md5
-echo "VMDK Virtual Image File generated"

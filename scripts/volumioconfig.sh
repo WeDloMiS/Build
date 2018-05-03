@@ -21,10 +21,10 @@ echo "Existing locales:"
 locale -a
 echo "Generating required locales:"
 [ -f /etc/locale.gen ] || touch -m /etc/locale.gen
-echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
 echo "Removing unused locales"
-echo "en_US.UTF-8" >> /etc/locale.nopurge
+echo "fr_FR.UTF-8" >> /etc/locale.nopurge
 # To remove existing locale data we must turn off the dpkg hook
 sed -i -e 's/^USE_DPKG/#USE_DPKG/' /etc/locale.nopurge
 # Ensure that the package knows it has been configured
@@ -111,291 +111,96 @@ echo "nameserver 8.8.8.8" > /etc/resolv.conf
 ################
 #Volumio System#---------------------------------------------------
 ################
-if [ $(uname -m) = armv7l ] || [ $(uname -m) = aarch64 ]; then
-  echo "Arm Environment detected"
-  echo ' Adding Raspbian Repo Key'
-  wget https://archive.raspbian.org/raspbian.public.key -O - | sudo apt-key add -
+## Specific for x86 environment
+echo 'X86 Environment'
 
-  echo "Installing ARM Node Environment"
-  wget http://repo.volumio.org/Volumio2/node-v${NODE_VERSION}-linux-armv6l.tar.xz
-  tar xf node-v${NODE_VERSION}-linux-armv6l.tar.xz
-  rm /node-v${NODE_VERSION}-linux-armv6l.tar.xz
-  cd /node-v${NODE_VERSION}-linux-armv6l
-  cp -rp bin/ include/ lib/ share/ /
-  cd /
-  rm -rf /node-v${NODE_VERSION}-linux-armv6l
+# cleanup
+apt-get clean
+rm -rf tmp/*
 
+echo "Installing X86 Node Environment"
+cd /
+wget https://nodejs.org/dist/v8.11.1/node-v8.11.1-linux-x86.tar.xz
+tar xf node-v8.11.1-linux-x86.tar.xz
+rm node-v8.11.1-linux-x86.tar.xz
+cd /node-v8.11.1-linux-x86
+cp -rp bin/ include/ lib/ share/ /
+cd /
+rm -rf /node-v8.11.1-linux-x86
 
-  # Symlinking to legacy paths
-  ln -s /bin/node /usr/local/bin/node
-  ln -s /bin/npm /usr/local/bin/npm
+# Symlinking to legacy paths
+ln -s /bin/node /usr/local/bin/node
+ln -s /bin/npm /usr/local/bin/npm
 
-  echo "Installing Volumio Modules"
-  cd /volumio
-  wget http://repo.volumio.org/Volumio2/node_modules_arm-${NODE_VERSION}.tar.gz
-  tar xf node_modules_arm-${NODE_VERSION}.tar.gz
-  rm node_modules_arm-${NODE_VERSION}.tar.gz
-
-  echo "Setting proper ownership"
-  chown -R volumio:volumio /volumio
-
-  echo "Creating Data Path"
-  mkdir /data
-  chown -R volumio:volumio /data
-
-  echo "Creating ImgPart Path"
-  mkdir /imgpart
-  chown -R volumio:volumio /imgpart
-
-  echo "Changing os-release permissions"
-  chown volumio:volumio /etc/os-release
-  chmod 777 /etc/os-release
-
-  echo "Installing Custom Packages"
-  cd /
-
-  ARCH=$(cat /etc/os-release | grep ^VOLUMIO_ARCH | tr -d 'VOLUMIO_ARCH="')
-  echo $ARCH
-  echo "Installing custom MPD depending on system architecture"
-
-  if [ $ARCH = arm ]; then
-
-     echo "Installing MPD for armv6"
-     # First we manually install a newer alsa-lib to achieve Direct DSD support
-
-     echo "Installing alsa-lib 1.1.3"
-     wget http://repo.volumio.org/Volumio2/Binaries/libasound2/armv6/libasound2_1.1.3-5_armhf.deb
-     wget http://repo.volumio.org/Volumio2/Binaries/libasound2/armv6/libasound2-data_1.1.3-5_all.deb
-     wget http://repo.volumio.org/Volumio2/Binaries/libasound2/armv6/libasound2-dev_1.1.3-5_armhf.deb
-     dpkg --force-all -i libasound2-data_1.1.3-5_all.deb
-     dpkg --force-all -i libasound2_1.1.3-5_armhf.deb
-     dpkg --force-all -i libasound2-dev_1.1.3-5_armhf.deb
-     rm libasound2-data_1.1.3-5_all.deb
-     rm libasound2_1.1.3-5_armhf.deb
-     rm libasound2-dev_1.1.3-5_armhf.deb
-
-     echo "Installing MPD 20.6 with Direct DSD Support"
-     wget http://repo.volumio.org/Volumio2/Binaries/mpd-DSD/mpd_0.20.6-1_armv6-DSD-2.deb
-     dpkg -i mpd_0.20.6-1_armv6-DSD-2.deb
-     rm mpd_0.20.6-1_armv6-DSD-2.deb
-
-     echo "Installing Upmpdcli for armv6"
-     wget http://repo.volumio.org/Volumio2/Binaries/upmpdcli/armv6/libupnpp3_0.15.1-1_armhf.deb
-     wget http://repo.volumio.org/Volumio2/Binaries/upmpdcli/armv6/libupnp6_1.6.20.jfd5-1_armhf.deb
-     wget http://repo.volumio.org/Volumio2/Binaries/upmpdcli/armv6/upmpdcli_1.2.12-1_armhf.deb
-     dpkg -i libupnpp3_0.15.1-1_armhf.deb
-     dpkg -i libupnp6_1.6.20.jfd5-1_armhf.deb
-     dpkg -i upmpdcli_1.2.12-1_armhf.deb
-     rm libupnpp3_0.15.1-1_armhf.deb
-     rm libupnp6_1.6.20.jfd5-1_armhf.deb
-     rm upmpdcli_1.2.12-1_armhf.deb
-
-     echo "Adding volumio-remote-updater for armv6"
-     wget http://repo.volumio.org/Volumio2/Binaries/arm/volumio-remote-updater_1.3-armhf.deb
-     dpkg -i volumio-remote-updater_1.3-armhf.deb
-     rm volumio-remote-updater_1.3-armhf.deb
+echo "Installing Volumio Modules"
+cd /volumio
+wget http://repo.volumio.org/Volumio2/node_modules_x86-${NODE_VERSION}.tar.gz
+tar xf node_modules_x86-${NODE_VERSION}.tar.gz
+rm node_modules_x86-${NODE_VERSION}.tar.gz
 
 
-  elif [ $ARCH = armv7 ]; then
-     echo "Installing MPD for armv7"
-     # First we manually install a newer alsa-lib to achieve Direct DSD support
+echo "Setting proper ownership"
+chown -R volumio:volumio /volumio
 
-     echo "Installing alsa-lib 1.1.3"
-     wget http://repo.volumio.org/Volumio2/Binaries/libasound2/armv7/libasound2_1.1.3-5_armhf.deb
-     wget http://repo.volumio.org/Volumio2/Binaries/libasound2/armv7/libasound2-data_1.1.3-5_all.deb
-     wget http://repo.volumio.org/Volumio2/Binaries/libasound2/armv7/libasound2-dev_1.1.3-5_armhf.deb
-     dpkg --force-all -i libasound2-data_1.1.3-5_all.deb
-     dpkg --force-all -i libasound2_1.1.3-5_armhf.deb
-     dpkg --force-all -i libasound2-dev_1.1.3-5_armhf.deb
-     rm libasound2-data_1.1.3-5_all.deb
-     rm libasound2_1.1.3-5_armhf.deb
-     rm libasound2-dev_1.1.3-5_armhf.deb
+echo "Creating Data Path"
+mkdir /data
+chown -R volumio:volumio /data
 
-     echo "Installing MPD 20.6 with Direct DSD Support"
-     wget http://repo.volumio.org/Volumio2/Binaries/mpd-DSD/mpd_0.20.6-1_armv7-DSD.deb
-     dpkg -i mpd_0.20.6-1_armv7-DSD.deb
-     rm mpd_0.20.6-1_armv7-DSD.deb
+echo "Changing os-release permissions"
+chown volumio:volumio /etc/os-release
+chmod 777 /etc/os-release
 
-    echo "Installing Upmpdcli for armv7"
-    wget http://repo.volumio.org/Volumio2/Binaries/upmpdcli/armv7/libupnpp3_0.15.1-1_armhf.deb
-    wget http://repo.volumio.org/Volumio2/Binaries/upmpdcli/armv7/libupnp6_1.6.20.jfd5-1_armhf.deb
-    wget http://repo.volumio.org/Volumio2/Binaries/upmpdcli/armv7/upmpdcli_1.2.12-1_armhf.deb
-    dpkg -i libupnpp3_0.15.1-1_armhf.deb
-    dpkg -i libupnp6_1.6.20.jfd5-1_armhf.deb
-    dpkg -i upmpdcli_1.2.12-1_armhf.deb
-    rm libupnpp3_0.15.1-1_armhf.deb
-    rm libupnp6_1.6.20.jfd5-1_armhf.deb
-    rm upmpdcli_1.2.12-1_armhf.deb
+echo "Installing Custom Packages"
+cd /
 
-    echo "Adding volumio-remote-updater for armv7"
-    wget http://repo.volumio.org/Volumio2/Binaries/arm/volumio-remote-updater_1.3-armv7.deb
-    dpkg -i volumio-remote-updater_1.3-armv7.deb
-    rm volumio-remote-updater_1.3-armv7.deb
+echo "Installing MPD for i386"
+# First we manually install a newer alsa-lib to achieve Direct DSD support
 
-  fi
-  #Remove autostart of upmpdcli
-  update-rc.d upmpdcli remove
+echo "Installing alsa-lib 1.1.3"
+apt-get -y install libasound2 libasound2-data libasound2-dev
 
+echo "Add new mirrors"
+echo "deb http://www.lesbonscomptes.com/upmpdcli/downloads/debian/ stretch main" > /etc/apt/sources.list.d/upmpdcli.list
+echo "deb http://www.lesbonscomptes.com/upmpdcli/downloads/mpd-debian/ stretch main" > /etc/apt/sources.list.d/mpd.list
+gpg --keyserver pool.sks-keyservers.net --recv-key F8E3347256922A8AE767605B7808CE96D38B9201
+gpg --export 7808CE96D38B9201 | apt-key add -
+apt-get update
 
-  echo "Installing Shairport-Sync"
-  wget http://repo.volumio.org/Volumio2/Binaries/shairport-sync-metadata-reader-arm.tar.gz
-  tar xf shairport-sync-metadata-reader-arm.tar.gz
-  rm /shairport-sync-metadata-reader-arm.tar.gz
+echo "Installing MPD"
+apt-get -y install mpd
 
-  echo "Installing Shairport-Sync Metadata Reader"
-  wget http://repo.volumio.org/Volumio2/Binaries/shairport-sync-3.0.2-arm.tar.gz
-  tar xf shairport-sync-3.0.2-arm.tar.gz
-  rm /shairport-sync-3.0.2-arm.tar.gz
+echo "Installing Upmpdcli"
+apt-get -y install upmpdcli libupnp6 libupnpp4
 
-  echo "Volumio Init Updater"
-  wget http://repo.volumio.org/Volumio2/Binaries/arm/volumio-init-updater-v2 -O /usr/local/sbin/volumio-init-updater
-  chmod a+x /usr/local/sbin/volumio-init-updater
-  echo "Installing Snapcast for multiroom"
+echo "Installing Shairport-Sync"
+wget http://repo.volumio.org/Volumio2/Binaries/shairport-sync-3.0.2-i386.tar.gz
+tar xf shairport-sync-3.0.2-i386.tar.gz
+rm /shairport-sync-3.0.2-i386.tar.gz
 
-  wget http://repo.volumio.org/Volumio2/Binaries/arm/snapserver -P /usr/sbin/
-  wget http://repo.volumio.org/Volumio2/Binaries/arm/snapclient -P  /usr/sbin/
-  chmod a+x /usr/sbin/snapserver
-  chmod a+x /usr/sbin/snapclient
+echo "Installing Shairport-Sync Metadata Reader"
+wget http://repo.volumio.org/Volumio2/Binaries/shairport-sync-metadata-reader-i386.tar.gz
+tar xf shairport-sync-metadata-reader-i386.tar.gz
+rm /shairport-sync-metadata-reader-i386.tar.gz
 
-  echo "Zsync"
-  rm /usr/bin/zsync
-  wget http://repo.volumio.org/Volumio2/Binaries/arm/zsync -P /usr/bin/
-  chmod a+x /usr/bin/zsync
+echo "Installing LINN Songcast module"
+apt-get -y install sc2mpd
 
-  echo "Adding special version for edimax dongle"
-  wget http://repo.volumio.org/Volumio2/Binaries/arm/hostapd-edimax -P /usr/sbin/
-  chmod a+x /usr/sbin/hostapd-edimax
+echo "Volumio Init Updater"
+wget http://repo.volumio.org/Volumio2/Binaries/x86/volumio-init-updater-v2 -O /usr/local/sbin/volumio-init-updater
+chmod a+x /usr/local/sbin/volumio-init-updater
 
-  echo "interface=wlan0
-ssid=Volumio
-channel=4
-driver=rtl871xdrv
-hw_mode=g
-auth_algs=1
-wpa=2
-wpa_key_mgmt=WPA-PSK
-rsn_pairwise=CCMP
-wpa_passphrase=volumio2" >> /etc/hostapd/hostapd-edimax.conf
-  chmod -R 777 /etc/hostapd-edimax.conf
+echo "Zsync"
+rm /usr/bin/zsync
+wget http://repo.volumio.org/Volumio2/Binaries/x86/zsync -P /usr/bin/
+chmod a+x /usr/bin/zsync
 
-  echo "Cleanup"
-  apt-get clean
-  rm -rf tmp/*
-elif [ $(uname -m) = i686 ] || [ $(uname -m) = x86 ] || [ $(uname -m) = x86_64 ]  ; then
-  echo 'X86 Environment Detected'
-
-  # cleanup
-  apt-get clean
-  rm -rf tmp/*
-
-  echo "Installing X86 Node Environment"
-  cd /
-  wget http://repo.volumio.org/Volumio2/node-v${NODE_VERSION}-linux-x86.tar.xz
-  tar xf node-v${NODE_VERSION}-linux-x86.tar.xz
-  rm /node-v${NODE_VERSION}-linux-x86.tar.xz
-  cd /node-v${NODE_VERSION}-linux-x86
-  cp -rp bin/ include/ lib/ share/ /
-  cd /
-  rm -rf /node-v${NODE_VERSION}-linux-x86
-
-  # Symlinking to legacy paths
-  ln -s /bin/node /usr/local/bin/node
-  ln -s /bin/npm /usr/local/bin/npm
-
-  echo "Installing Volumio Modules"
-  cd /volumio
-  wget http://repo.volumio.org/Volumio2/node_modules_x86-${NODE_VERSION}.tar.gz
-  tar xf node_modules_x86-${NODE_VERSION}.tar.gz
-  rm node_modules_x86-${NODE_VERSION}.tar.gz
-
-
-  echo "Setting proper ownership"
-  chown -R volumio:volumio /volumio
-
-  echo "Creating Data Path"
-  mkdir /data
-  chown -R volumio:volumio /data
-
-  echo "Changing os-release permissions"
-  chown volumio:volumio /etc/os-release
-  chmod 777 /etc/os-release
-
-  echo "Installing Custom Packages"
-  cd /
-
-  echo "Installing MPD for i386"
-  # First we manually install a newer alsa-lib to achieve Direct DSD support
-  
-  echo "Installing alsa-lib 1.1.3"
-  wget http://repo.volumio.org/Volumio2/Binaries/libasound2/i386/libasound2_1.1.3-5_i386.deb
-  wget http://repo.volumio.org/Volumio2/Binaries/libasound2/i386/libasound2-data_1.1.3-5_all.deb
-  wget http://repo.volumio.org/Volumio2/Binaries/libasound2/i386/libasound2-dev_1.1.3-5_i386.deb
-  dpkg --force-all -i libasound2-data_1.1.3-5_all.deb
-  dpkg --force-all -i libasound2_1.1.3-5_i386.deb
-  dpkg --force-all -i libasound2-dev_1.1.3-5_i386.deb
-  rm libasound2-data_1.1.3-5_all.deb
-  rm libasound2_1.1.3-5_i386.deb
-  rm libasound2-dev_1.1.3-5_i386.deb 
-
-  echo "Installing MPD 20.6 with Direct DSD Support"
-  wget http://repo.volumio.org/Volumio2/Binaries/mpd-DSD/mpd_0.20.6-1_i386-DSD-2.deb
-  dpkg -i mpd_0.20.6-1_i386-DSD-2.deb
-  rm mpd_0.20.6-1_i386-DSD-2.deb
-
-  echo "Installing Upmpdcli"
-  wget http://repo.volumio.org/Packages/Upmpdcli/x86/upmpdcli_1.2.12-1_i386.deb
-  wget http://repo.volumio.org/Packages/Upmpdcli/x86/libupnp6_1.6.20.jfd5-1_i386.deb
-  wget http://repo.volumio.org/Packages/Upmpdcli/x86/libupnpp3_0.15.1-1_i386.deb
-  dpkg -i libupnpp3_0.15.1-1_i386.deb
-  dpkg -i libupnp6_1.6.20.jfd5-1_i386.deb
-  dpkg -i upmpdcli_1.2.12-1_i386.deb
-  rm /libupnpp3_0.15.1-1_i386.deb
-  rm /upmpdcli_1.2.12-1_i386.deb
-  rm /libupnp6_1.6.20.jfd5-1_i386.deb
-
-  echo "Installing Shairport-Sync"
-  wget http://repo.volumio.org/Volumio2/Binaries/shairport-sync-3.0.2-i386.tar.gz
-  tar xf shairport-sync-3.0.2-i386.tar.gz
-  rm /shairport-sync-3.0.2-i386.tar.gz
-  
-  echo "Installing Shairport-Sync Metadata Reader"
-  wget http://repo.volumio.org/Volumio2/Binaries/shairport-sync-metadata-reader-i386.tar.gz
-  tar xf shairport-sync-metadata-reader-i386.tar.gz
-  rm /shairport-sync-metadata-reader-i386.tar.gz
-  
-
-  echo "Installing LINN Songcast module"
-  wget http://repo.volumio.org/Packages/Upmpdcli/x86/sc2mpd_1.1.1-1_i386.deb
-  dpkg -i sc2mpd_1.1.1-1_i386.deb
-  rm /sc2mpd_1.1.1-1_i386.deb
-
-  echo "Volumio Init Updater"
-  wget http://repo.volumio.org/Volumio2/Binaries/x86/volumio-init-updater-v2 -O /usr/local/sbin/volumio-init-updater
-  chmod a+x /usr/local/sbin/volumio-init-updater
-
-  echo "Zsync"
-  rm /usr/bin/zsync
-  wget http://repo.volumio.org/Volumio2/Binaries/x86/zsync -P /usr/bin/
-  chmod a+x /usr/bin/zsync
-
-  echo "Adding volumio-remote-updater for i386"
-  wget http://repo.volumio.org/Volumio2/Binaries/x86/volumio-remote-updater_1.3-i386.deb
-  dpkg -i volumio-remote-updater_1.3-i386.deb
-  rm /volumio-remote-updater_1.3-i386.deb
-
-
-fi
+echo "Adding volumio-remote-updater for i386"
+wget http://repo.volumio.org/Volumio2/Binaries/x86/volumio-remote-updater_1.3-i386.deb
+dpkg -i volumio-remote-updater_1.3-i386.deb
+rm /volumio-remote-updater_1.3-i386.deb
 
 echo "Installing Upmpdcli Streaming Modules"
-wget http://repo.volumio.org/Packages/Upmpdcli/upmpdcli-gmusic_1.2.12-1_all.deb
-wget http://repo.volumio.org/Packages/Upmpdcli/upmpdcli-qobuz_1.2.12-1_all.deb
-wget http://repo.volumio.org/Packages/Upmpdcli/upmpdcli-tidal_1.2.12-1_all.deb
-dpkg -i upmpdcli-gmusic_1.2.12-1_all.deb
-dpkg -i upmpdcli-qobuz_1.2.12-1_all.deb
-dpkg -i upmpdcli-tidal_1.2.12-1_all.deb
-rm /upmpdcli-gmusic_1.2.12-1_all.deb
-rm /upmpdcli-qobuz_1.2.12-1_all.deb
-rm /upmpdcli-tidal_1.2.12-1_all.deb
+apt-get -y install upmpdcli-gmusic upmpdcli-qobuz upmpdcli-tidal
 
 echo "Creating Volumio Folder Structure"
 # Media Mount Folders
@@ -492,7 +297,6 @@ echo '@audio - rtprio 99
 
 echo "Alsa tuning"
 
-
 echo "Creating Alsa state file"
 touch /var/lib/alsa/asound.state
 echo '#' > /var/lib/alsa/asound.state
@@ -560,4 +364,3 @@ chmod -R 777 /var/lib/dhcpcd5
 
 echo "Setting CPU governor to performance"
 echo 'GOVERNOR="performance"' > /etc/default/cpufrequtils
-
