@@ -139,6 +139,8 @@ if [ -n "$BUILD" ]; then
     echo "VOLUMIO_ARCH=\"${BUILD}\""
   } >> "build/$BUILD/root/etc/os-release"
   rm -rf build/$BUILD/root/volumio/http/www/.git
+  if [ ! "$BUILD" = x86 ]; then
+    chroot "build/$BUILD/root" /bin/bash -x <<'EOF'
 su -
 ./volumioconfig.sh
 EOF
