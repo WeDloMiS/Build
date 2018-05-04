@@ -16,7 +16,7 @@ echo 'Copying Custom Volumio System Files'
 
 echo 'Copying X86 related Configuration files'
 #APT sources file
-# cp volumio/etc/apt/sources.list.x86 build/$BUILD/root/etc/apt/sources.list
+cp volumio/etc/apt/sources.list.x86 build/$BUILD/root/etc/apt/sources.list
 #Grub2 conf file
 cp volumio/etc/default/grub build/$BUILD/root/etc/default/grub
 cp volumio/splash/volumio.png build/$BUILD/root/boot

@@ -5,6 +5,10 @@ PATCH=$(cat /patch)
 echo "Initializing.."
 . init.sh
 
+#APT sources file
+cp volumio/etc/apt/sources.list.x86 build/$BUILD/root/etc/apt/sources.list
+apt-get update
+
 echo "Installing the kernel and creating initramfs"
 # Kernel version not known yet
 # Not brilliant, but safe enough as x86.sh only copied one image and one firmware package version
