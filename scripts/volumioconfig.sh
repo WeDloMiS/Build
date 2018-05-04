@@ -157,7 +157,8 @@ echo "Installing MPD for i386"
 # First we manually install a newer alsa-lib to achieve Direct DSD support
 
 echo "Installing alsa-lib 1.1.3"
-apt-get -y install libasound2 libasound2-data libasound2-dev
+apt-get -y --allow-unauthenticated install libasound2 libasound2-data libasound2-dev
+apt-get -y --allow-unauthenticated install dirmngr
 
 echo "Add new mirrors"
 echo "deb http://www.lesbonscomptes.com/upmpdcli/downloads/debian/ stretch main" > /etc/apt/sources.list.d/upmpdcli.list
@@ -167,10 +168,10 @@ gpg --export 7808CE96D38B9201 | apt-key add -
 apt-get update
 
 echo "Installing MPD"
-apt-get -y install mpd
+apt-get -y --allow-unauthenticated install mpd
 
 echo "Installing Upmpdcli"
-apt-get -y install upmpdcli libupnp6 libupnpp4
+apt-get -y --allow-unauthenticated install upmpdcli libupnp6 libupnpp4
 
 echo "Installing Shairport-Sync"
 wget http://repo.volumio.org/Volumio2/Binaries/shairport-sync-3.0.2-i386.tar.gz
@@ -183,7 +184,7 @@ tar xf shairport-sync-metadata-reader-i386.tar.gz
 rm /shairport-sync-metadata-reader-i386.tar.gz
 
 echo "Installing LINN Songcast module"
-apt-get -y install sc2mpd
+apt-get -y --allow-unauthenticated install sc2mpd
 
 echo "Volumio Init Updater"
 wget http://repo.volumio.org/Volumio2/Binaries/x86/volumio-init-updater-v2 -O /usr/local/sbin/volumio-init-updater
@@ -200,7 +201,7 @@ dpkg -i volumio-remote-updater_1.3-i386.deb
 rm /volumio-remote-updater_1.3-i386.deb
 
 echo "Installing Upmpdcli Streaming Modules"
-apt-get -y install upmpdcli-gmusic upmpdcli-qobuz upmpdcli-tidal
+apt-get -y --allow-unauthenticated install upmpdcli-gmusic upmpdcli-qobuz upmpdcli-tidal
 
 echo "Creating Volumio Folder Structure"
 # Media Mount Folders
