@@ -112,79 +112,82 @@ if [ -n "$BUILD" ]; then
   mkdir "build/$BUILD"
   mkdir "build/$BUILD/root"
   
+  echo "Multistrap Build"
   multistrap -a "$ARCH" -f "$CONF"
   cp scripts/volumioconfig.sh "build/$BUILD/root"
+  echo "Multistrap End / Begin Mount"
 
-  mount /dev "build/$BUILD/root/dev" -o bind
-  mount /proc "build/$BUILD/root/proc" -t proc
-  mount /sys "build/$BUILD/root/sys" -t sysfs
-
-  echo 'Cloning Volumio Node Backend'
-  mkdir "build/$BUILD/root/volumio"  
-  if [ -n "$PATCH" ]; then
-      echo "Cloning Volumio with all its history"
-      git clone https://github.com/WeDloMiS/Volumio2.git build/$BUILD/root/volumio
-  else
-      git clone --depth 1 -b master --single-branch https://github.com/WeDloMiS/Volumio2.git build/$BUILD/root/volumio
-  fi
-  
-  echo 'Cloning Volumio UI'
-  git clone --depth 1 -b dist --single-branch https://github.com/WeDloMiS/Volumio2-UI.git "build/$BUILD/root/volumio/http/www"
-  
-  echo "Adding os-release infos"
-  {
-    echo "VOLUMIO_BUILD_VERSION=\"$(git rev-parse HEAD)\""
-    echo "VOLUMIO_FE_VERSION=\"$(git --git-dir "build/$BUILD/root/volumio/http/www/.git" rev-parse HEAD)\""
-    echo "VOLUMIO_BE_VERSION=\"$(git --git-dir "build/$BUILD/root/volumio/.git" rev-parse HEAD)\""
-    echo "VOLUMIO_ARCH=\"${BUILD}\""
-  } >> "build/$BUILD/root/etc/os-release"
-  rm -rf build/$BUILD/root/volumio/http/www/.git
-  if [ ! "$BUILD" = x86 ]; then
-    chroot "build/$BUILD/root" /bin/bash -x <<'EOF'
-su -
-./volumioconfig.sh
-EOF
-  else
-    echo ':arm:M::\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x28\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-arm-static:' > /proc/sys/fs/binfmt_misc/register
-    chroot "build/$BUILD/root" /volumioconfig.sh
-  fi
-
-  echo "Base System Installed"
-  rm "build/$BUILD/root/volumioconfig.sh"
-  ###Dirty fix for mpd.conf TODO use volumio repo
-  cp volumio/etc/mpd.conf "build/$BUILD/root/etc/mpd.conf"
-
-  CUR_DATE=$(date)
-  #Write some Version informations
-  echo "Writing system information"
-  echo "VOLUMIO_VARIANT=\"${VARIANT}\"
-VOLUMIO_TEST=\"FALSE\"
-VOLUMIO_BUILD_DATE=\"${CUR_DATE}\"
-" >> "build/${BUILD}/root/etc/os-release"
-
-  echo "Unmounting Temp devices"
-  umount -l "build/$BUILD/root/dev"
-  umount -l "build/$BUILD/root/proc"
-  umount -l "build/$BUILD/root/sys"
-  # Setting up cgmanager under chroot/qemu leaves a mounted fs behind, clean it up
-  umount -l "build/$BUILD/root/run/cgmanager/fs"
-  sh scripts/configure.sh -b "$BUILD"
+#  mount /dev "build/$BUILD/root/dev" -o bind
+#  mount /proc "build/$BUILD/root/proc" -t proc
+#  mount /sys "build/$BUILD/root/sys" -t sysfs
+#  echo "Mount OK"
+#
+#  echo 'Cloning Volumio Node Backend'
+#  mkdir "build/$BUILD/root/volumio"  
+#  if [ -n "$PATCH" ]; then
+#      echo "Cloning Volumio with all its history"
+#      git clone https://github.com/WeDloMiS/Volumio2.git build/$BUILD/root/volumio
+#  else
+#      git clone --depth 1 -b master --single-branch https://github.com/WeDloMiS/Volumio2.git build/$BUILD/root/volumio
+#  fi
+#  
+#  echo 'Cloning Volumio UI'
+#  git clone --depth 1 -b dist --single-branch https://github.com/WeDloMiS/Volumio2-UI.git "build/$BUILD/root/volumio/http/www"
+#  
+#  echo "Adding os-release infos"
+#  {
+#    echo "VOLUMIO_BUILD_VERSION=\"$(git rev-parse HEAD)\""
+#    echo "VOLUMIO_FE_VERSION=\"$(git --git-dir "build/$BUILD/root/volumio/http/www/.git" rev-parse HEAD)\""
+#    echo "VOLUMIO_BE_VERSION=\"$(git --git-dir "build/$BUILD/root/volumio/.git" rev-parse HEAD)\""
+#    echo "VOLUMIO_ARCH=\"${BUILD}\""
+#  } >> "build/$BUILD/root/etc/os-release"
+#  rm -rf build/$BUILD/root/volumio/http/www/.git
+#  if [ ! "$BUILD" = x86 ]; then
+#    chroot "build/$BUILD/root" /bin/bash -x <<'EOF'
+#su -
+#./volumioconfig.sh
+#EOF
+#  else
+#    echo ':arm:M::\x7fELF\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x28\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-arm-static:' > /proc/sys/fs/binfmt_misc/register
+#    chroot "build/$BUILD/root" /volumioconfig.sh
+#  fi
+#
+#  echo "Base System Installed"
+#  rm "build/$BUILD/root/volumioconfig.sh"
+#  ###Dirty fix for mpd.conf TODO use volumio repo
+#  cp volumio/etc/mpd.conf "build/$BUILD/root/etc/mpd.conf"
+#
+#  CUR_DATE=$(date)
+#  #Write some Version informations
+#  echo "Writing system information"
+#  echo "VOLUMIO_VARIANT=\"${VARIANT}\"
+#VOLUMIO_TEST=\"FALSE\"
+#VOLUMIO_BUILD_DATE=\"${CUR_DATE}\"
+#" >> "build/${BUILD}/root/etc/os-release"
+#
+#  echo "Unmounting Temp devices"
+#  umount -l "build/$BUILD/root/dev"
+#  umount -l "build/$BUILD/root/proc"
+#  umount -l "build/$BUILD/root/sys"
+#  # Setting up cgmanager under chroot/qemu leaves a mounted fs behind, clean it up
+#  umount -l "build/$BUILD/root/run/cgmanager/fs"
+#  sh scripts/configure.sh -b "$BUILD"
 fi
 
-if [ -n "$PATCH" ]; then
-  echo "Copying Patch to Rootfs"
-  cp -rp "$PATCH"  "build/$BUILD/root/"
-else
-  PATCH='volumio'
-fi
-
-echo 'Writing x86 Image File'
-check_os_release "x86" "$VERSION" "$DEVICE"
-sh scripts/x86image.sh -v "$VERSION" -p "$PATCH";
-
-#When the tar is created we can build the docker layer
-if [ "$CREATE_DOCKER_LAYER" = 1 ]; then
-  echo 'Creating docker layer'
-  DOCKER_UID="$(sudo docker import "VolumioRootFS$VERSION.tar.gz" "$DOCKER_REPOSITORY_NAME")"
-  echo "$DOCKER_UID"
-fi
+#if [ -n "$PATCH" ]; then
+#  echo "Copying Patch to Rootfs"
+#  cp -rp "$PATCH"  "build/$BUILD/root/"
+#else
+#  PATCH='volumio'
+#fi
+#
+#echo 'Writing x86 Image File'
+#check_os_release "x86" "$VERSION" "$DEVICE"
+#sh scripts/x86image.sh -v "$VERSION" -p "$PATCH";
+#
+##When the tar is created we can build the docker layer
+#if [ "$CREATE_DOCKER_LAYER" = 1 ]; then
+#  echo 'Creating docker layer'
+#  DOCKER_UID="$(sudo docker import "VolumioRootFS$VERSION.tar.gz" "$DOCKER_REPOSITORY_NAME")"
+#  echo "$DOCKER_UID"
+#fi
