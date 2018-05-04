@@ -8,8 +8,8 @@ echo "Initializing.."
 echo "Installing the kernel and creating initramfs"
 # Kernel version not known yet
 # Not brilliant, but safe enough as x86.sh only copied one image and one firmware package version
-apt-get -y install linux-image-4.9.0-6-686
-apt-get -y install firmware-atheros firmware-brcm80211 firmware-intel-sound firmware-ipw2x00 firmware-iwlwifi firmware-linux firmware-linux-free firmware-realtek
+apt-get -y --allow-unauthenticated install linux-image-4.9.0-6-686
+apt-get -y --allow-unauthenticated install firmware-atheros firmware-brcm80211 firmware-intel-sound firmware-ipw2x00 firmware-iwlwifi firmware-linux firmware-linux-free firmware-realtek
 
 echo "Creating node/ nodejs symlinks to stay compatible with the armv6/v7 platforms"
 ln -s /usr/bin/nodejs /usr/local/bin/nodejs

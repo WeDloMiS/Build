@@ -114,6 +114,9 @@ echo "nameserver 8.8.8.8" > /etc/resolv.conf
 ## Specific for x86 environment
 echo 'X86 Environment'
 
+cp volumio/etc/apt/sources.list.x86 build/$BUILD/root/etc/apt/sources.list
+apt-get update
+
 # cleanup
 apt-get clean
 rm -rf tmp/*
